@@ -1,0 +1,28 @@
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache & compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# Large model checkpoints (weights)
+*.pt
+*.pth
+*.ckpt
+
+# Raw video recordings (gifs are kept for README visuals)
+*.mp4
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
