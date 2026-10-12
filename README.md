@@ -91,25 +91,35 @@ All empirical measurements were collected under identical seeds on an **NVIDIA G
 
 ### 1. Goal-Conditioned Formulation and The Mode-Averaging Dilemma
 In Goal-Conditioned Reinforcement Learning ([Kaelbling, 1993](https://www.sciencedirect.com/science/article/pii/B9781558603073500283); [Schaul et al., 2015](https://proceedings.mlr.press/v37/schaul15.html)), the policy optimizes the discounted expected arrival at a commanded target state $g$:
+
 $$\max_\pi \mathbb{E}_{\tau \sim \pi} \left[ \sum_{t=0}^\infty \gamma^t r(s_t, a_t, g) \right], \quad \text{where } r(s, a, g) = -\mathbb{I}(\|s - g\| > \epsilon)$$
 
 In complex continuous-control environments (such as mazes with obstacles), valid trajectories to $g$ are intrinsically **multi-modal** (e.g., navigating around a barrier to the left or right).
 
 A deterministic or unimodal Gaussian actor $\pi_\theta(s, g)$ trained via mean squared error (MSE) or Advantage-Weighted Regression ([Peng et al., 2019](https://arxiv.org/abs/1910.00177); [Nair et al., 2020](https://arxiv.org/abs/2006.09359)) optimizes:
+
 $$\min_\theta \mathbb{E} \left[ w(s, a, g) \cdot \| a - \pi_\theta(s, g) \|^2 \right]$$
+
 Because the quadratic penalty is strictly convex, when two distinct modes $a_{\text{left}}$ and $a_{\text{right}}$ yield equivalent positive advantage, the gradient update forces the policy to output the **expected mean**:
+
 $$\pi_\theta(s, g) \to \frac{w_L a_L + w_R a_R}{w_L + w_R} \approx \mathbf{0.0}$$
+
 In physical environments, action $\mathbf{0.0}$ commands the robot directly into the obstacle.
 
 ### 2. Topological Reachability: Wang et al.'s 1000-Layer Contrastive Metric
 To provide non-Euclidean distance signals, we incorporate the self-supervised contrastive learning formulation from [Wang et al. (arXiv:2503.14858, NeurIPS 2025 Best Paper)](https://arxiv.org/abs/2503.14858), extending [Contrastive RL (Eysenbach et al., 2022)](https://arxiv.org/abs/2206.07568). Using an asymmetric Pre-Norm ResNet architecture:
+
 $$\mathcal{L}_{\text{InfoNCE}} = -\mathbb{E} \left[ \log \frac{\exp\left(\phi(s_t)^\top \psi(g) / \tau\right)}{\sum_{g'} \exp\left(\phi(s_t)^\top \psi(g') / \tau\right)} \right]$$
+
 The normalized inner product $V(s, g) = \frac{\phi(s)}{\|\phi(s)\|} \cdot \frac{\psi(g)}{\|\psi(g)\|}$ learns a quasi-metric representing temporal reachability across the maze manifold. We extract advantages:
+
 $$A(s_t, a_t, g) = V(s_{t+1}, g) - V(s_t, g)$$
 
 ### 3. Diffusion Score-Matching Actor
 Rather than regressing an MLP onto this advantage, we formulate action generation as a conditional denoising diffusion process ([Sohl-Dickstein et al., 2015](https://arxiv.org/abs/1503.03585); [Ho et al., 2020](https://arxiv.org/abs/2006.11239); [Chi et al., 2023](https://arxiv.org/abs/2303.04137)):
+
 $$\mathcal{L}_{\text{diff}}(\theta) = \mathbb{E}_{s, a, g, \tau, \epsilon} \left[ \exp\left(\alpha A(s, a, g)\right) \cdot \| \epsilon - \epsilon_\theta(a_\tau, \tau, s, g) \|^2 \right]$$
+
 By parameterizing the score function with a **12-layer Diffusion Transformer (DiT)** ([Peebles & Xie, 2023](https://arxiv.org/abs/2212.09748)) with Adaptive Layer Normalization (AdaLN-Zero), the policy can represent disjoint density modes and cleanly sample distinct trajectories without averaging.
 
 ---
@@ -118,6 +128,7 @@ By parameterizing the score function with a **12-layer Diffusion Transformer (Di
 
 ### Deep Dive 1: Eliminating the 3-Second Plasma Serialization Tax
 In standard distributed RL systems (e.g., standard Ray/Plasma pipelines), parameter broadcast routes model weights across the host bus:
+
 $$\text{Trainer GPU} \xrightarrow{\text{D2H}} \text{CPU Host RAM} \xrightarrow{\text{IPC}} \text{Plasma Store} \xrightarrow{\text{IPC}} \text{Worker CPU} \xrightarrow{\text{H2D}} \text{Worker GPU}$$
 
 ```
@@ -136,7 +147,9 @@ For a 232M DiT actor ($885\text{ MB}$ FP32), two PCIe transfers plus Python seri
 
 ### Deep Dive 2: Composable FSDP2 Sharding (ZeRO-3)
 A 232M DiT policy requires:
+
 $$\text{Memory} = \underbrace{885\text{ MB}}_{\text{Weights}} + \underbrace{885\text{ MB}}_{\text{Gradients}} + \underbrace{1,770\text{ MB}}_{\text{AdamW (Momentum + Variance)}} = \mathbf{3.54\text{ GB per process}}$$
+
 Standard DistributedDataParallel (DDP) duplicates this memory across all ranks. Using composable FSDP2 ([PyTorch FSDP2](https://pytorch.org/docs/stable/distributed.fsdp.html); [Rajbhandari et al., 2020](https://arxiv.org/abs/1910.02054)), we shard parameters, gradients, and optimizer states evenly across ranks, reducing per-rank baseline VRAM by **$>50\%$** while overlapping `ReduceScatter` of gradients with backward passes.
 
 ### Deep Dive 3: Dual-Stream Pipelined Execution and Ping-Pong Buffers
