@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-09-30 12:32:51",
+  "hardware": {
+    "device": "NVIDIA GeForce RTX 3060 Ti",
+    "vram_total_mb": 8191.5
+  },
+  "model_and_fsdp": {
+    "total_parameters": 232088584,
+    "total_parameters_millions": 232.1,
+    "unsharded_weight_mb": 885.35,
+    "sharded_weight_mb_per_rank": 442.67,
+    "vram_reduction_percent": 50.0
+  },
+  "weight_synchronization": {
+    "ray_plasma_cpu_ms": 3121.89,
+    "cuda_ipc_zero_copy_ms": 10.31,
+    "speedup_factor": 302.7
+  },
+  "replay_buffer": {
+    "ingestion_sps": 24775190.0,
+    "decentralized_sample_time_ms": 0.319,
+    "centralized_broadcasts_required": 0
+  },
+  "rollout_engine": {
+    "rollout_sps": 233.0,
+    "ddim_inference_steps": 5,
+    "concurrent_environments": 8
+  }
+}

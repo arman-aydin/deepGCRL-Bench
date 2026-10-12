@@ -1,0 +1,38 @@
+{
+  "device": "cuda:0",
+  "timestamp": 1791751788.1163769,
+  "architectures": {
+    "monolithic": {
+      "paradigm": "Synchronous Lockstep",
+      "parameters": 83976,
+      "throughput_steps_per_sec": 80.93,
+      "avg_step_latency_ms": 12.35,
+      "gpu_idle_pct": 3.8,
+      "weight_sync_latency_ms": 0.0,
+      "bottleneck": "GPU sits idle during CPU physics; CPU sits idle during SGD."
+    },
+    "naive_distributed": {
+      "paradigm": "Ray Plasma Object Store + DDP Broadcast",
+      "parameters": 104456,
+      "weight_sync_latency_ms": 6.16,
+      "sample_overhead_ms": 0.32,
+      "bottleneck": "Ray Plasma Host RAM serialization tax + Rank-0 sequential broadcast chokepoint."
+    },
+    "disaggregated": {
+      "paradigm": "Disaggregated FSDP2 + CUDA IPC",
+      "parameters": 232088584,
+      "weight_sync_latency_ms": 10.63,
+      "buffer_ingest_rate": 24568213.0,
+      "ipc_speedup_vs_plasma": 10.2,
+      "bottleneck": "Turn-based synchronization between rollout actors and training ranks."
+    },
+    "pipelined_async": {
+      "paradigm": "Dual-Stream Concurrency + Ping-Pong Buffering",
+      "parameters": 232088584,
+      "staging_push_latency_ms": 5.05,
+      "active_slot_swap_ms": 0.0038,
+      "weight_bubble_overhead": "0 us (Zero-Wait pointer swap)",
+      "hardware_overlap_efficiency": "100% (Simulation & DDIM hidden behind training backward pass)"
+    }
+  }
+}

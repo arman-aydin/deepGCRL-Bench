@@ -1,0 +1,1 @@
+from .benchmark_suite import run_full_benchmark_suite

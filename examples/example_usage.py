@@ -1,35 +1,27 @@
+"""Example evaluating goal-conditioned policy rollouts in OGBench environments."""
+
 import ogbench
 
-# Make an environment and datasets (they will be automatically downloaded)
-dataset_name = 'humanoidmaze-large-navigate-v0'
-env, train_dataset, val_dataset = ogbench.make_env_and_datasets(dataset_name)
 
-# Train your offline goal-conditioned RL agent on the dataset
-# ...
+def evaluate_policy_tasks(env_name: str = 'humanoidmaze-large-navigate-v0', num_tasks: int = 5):
+    """Evaluate an agent across standardized goal tasks."""
+    env, _, _ = ogbench.make_env_and_datasets(env_name)
 
-# Evaluate the agent
-for task_id in [1, 2, 3, 4, 5]:
-    # Reset  the environment and set the evaluation task
-    ob, info = env.reset(
-        options=dict(
-            task_id=task_id, # Set the evaluation task. Each environment provides five
-                             # evaluation goals, and `task_id` must be in [1, 5]
-            render_goal=True, # Set to `True` to get a rendered goal image (optional)
-        )
-    )
+    for task_id in range(1, num_tasks + 1):
+        obs, info = env.reset(options=dict(task_id=task_id, render_goal=False))
+        goal = info['goal']
+        done = False
+        step = 0
 
-    goal = info['goal'] # Get the goal observation to pass to the agent
-    goal_rendered = info['goal_rendered']   # Get the rendered goal image (optional)
+        while not done:
+            action = env.action_space.sample()
+            obs, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated
+            step += 1
 
-    done = False
-    while not done:
-        action = env.action_space.sample()  # Replace this with your agent's action
-        ob, reward, terminated, truncated, info = env.step(action)  # Gymnasium-style step
-        # If the agent reaches the goal, `terminated` will be `True`. If the episode length
-        # exceeds the maximum length without reaching the goal, `truncated` will be `True`.
-        # `reward` is 1 if the agent reaches the goal and 0 otherwise.
-        done = terminated or truncated
-        frame = env.render()    # Render the current frame (optional)
+        success = info.get('success', False)
+        print(f"Task ID {task_id}: {'Success' if success else 'Failed'} in {step} steps.")
 
-    success = info['success']   # Whether the agent reached the goal (0 or 1)
-                                # `terminated` also indicates this
+
+if __name__ == '__main__':
+    evaluate_policy_tasks()
